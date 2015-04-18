@@ -54,7 +54,7 @@ if (is_ajax()) {
 <!--Put the following in the <head>-->
 <script type="text/javascript">
 $("document").ready(function(){
-  $(".gab_test").click(function(){
+  $(".setter").click(function(){
     var data = {
       "action": "act",
       "id": $(this).attr("id"),
@@ -105,7 +105,7 @@ $("document").ready(function(){
 <body>
 <?php
   foreach(get_status() as $binou){
-    echo "<button id=\"${binou["id"]}\" state=\"${binou["status"]}\" class=\"gab_test\">${binou["identifier"]}</button></br>";
+    echo "<button id=\"${binou["id"]}\" state=\"${binou["status"]}\" class=\"setter\">${binou["identifier"]}</button></br>";
   }
 ?>
 <button class="getter">actualiser</button></br>

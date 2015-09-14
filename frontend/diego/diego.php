@@ -9,9 +9,9 @@ function diego_act(){
   $id = intval($_POST["id"]);
   $state = $_POST["state"];
   if ($state == "ON"){
-    $return_val = exec("tdtool -n " . $id, $table, $status);
+    $return_val = exec("echo tdtool -n " . $id, $table, $status);
   } else {
-    $return_val = exec("tdtool -f " . $id, $table, $status);
+    $return_val = exec("echo tdtool -f " . $id, $table, $status);
   }
   $return["status"] = $status;
   $return["string"] = $return_val;

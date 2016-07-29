@@ -9,9 +9,9 @@ function diego_act(){
   $id = intval($_POST["id"]);
   $state = $_POST["state"];
   if ($state == "ON"){
-    $return_val = exec("echo tdtool -n " . $id, $table, $status);
+    $return_val = exec("tdtool -n " . $id, $table, $status);
   } else {
-    $return_val = exec("echo tdtool -f " . $id, $table, $status);
+    $return_val = exec("tdtool -f " . $id, $table, $status);
   }
   $return["status"] = $status;
   $return["string"] = $return_val;
@@ -45,17 +45,11 @@ if (is_ajax()) {
 }
 ?>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=2.0">
-<link rel="stylesheet" href="jquery.mobile-1.4.5.min.css">
-<script src="jquery-1.11.1.min.js"></script>
-<script src="jquery.mobile-1.4.5.min.js"></script>
+<script src="jquery-1.11.0.min.js"></script>
 <!--Put the following in the <head>-->
 <script type="text/javascript">
 $("document").ready(function(){
-  $(".setter").on('change', function(){
-        $(".the-return").html(
-          "Sending data<br />"
-        );
+  $(".setter").click(function(){
     if($(this).attr("state") == "ON"){
       $(this).attr("state", "OFF");
     } else {
@@ -100,44 +94,20 @@ $("document").ready(function(){
   });
 });
 </script>
-<style>
-    .right_button {float: right; text-align: right;}
-</style>
 </head>
 
 <body>
-<div data-role="page">
-    <div data-role="header">
-        <h1>Controle via Tellstick</h1>
-        <a href="#nav-panel" data-icon="bars" nodisc-icon="" data-iconpos="notext">Menu</a>
-        <a href="#" class="getter ui-btn ui-shadow ui-corner-all ui-btn-icon-notext ui-btn-inline ui-icon-refresh">actualiser</a>
-    </div><!-- /header -->
-    <div role="main" class="ui-content jqm-content jqm-fullwidth">
-<form>
 <?php
   foreach(get_status() as $binou){
-?>
-<div class="ui-grid-a row">
-<div class="ui-block-a">
-    <label for="<?= $binou["id"] ?>"> <?= $binou["identifier"] ?></label>
-</div>
-<div class="right_button ui-block-b">
-    <input data-role="flipswitch" id="<?= $binou["id"]?>" state="<?= $binou["status"]?>" class="setter" type="checkbox" <?php if ($binou["status"] == "ON") echo 'checked=""';?>/>
-</div>
-</div>
-<?php
+    echo "
+<button id=\"${binou["id"]}\" state=\"${binou["status"]}\" class=\"setter\">${binou["identifier"]}</button></br>";
   }
 ?>
-</form>
-    </div><!-- /content -->
-    <div data-role="panel" data-display="push" data-theme="b" id="nav-panel">
-<div data-role="collapsible" >
-<h4> Status </h4>
+
+<button class="getter">actualiser</button></br>
+
 <div class="the-return">
   status
-</div>
-    </div><!-- /panel -->
-
 </div>
 
 

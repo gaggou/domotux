@@ -48,57 +48,7 @@ if (is_ajax()) {
 <link rel="stylesheet" href="jquery.mobile-1.4.5.min.css">
 <script src="jquery-1.11.1.min.js"></script>
 <script src="jquery.mobile-1.4.5.min.js"></script>
-<!--Put the following in the <head>-->
-<script type="text/javascript">
-$("document").ready(function(){
-  $(".setter").on('change', function(){
-        $(".the-return").html(
-          "Sending data<br />"
-        );
-    if($(this).attr("state") == "ON"){
-      $(this).attr("state", "OFF");
-    } else {
-      $(this).attr("state", "ON");
-    }
-    var data = {
-      "action": "act",
-      "id": $(this).attr("id"),
-      "state": $(this).attr("state")
-    };
-    data = $(this).serialize() + "&" + $.param(data);
-    $.ajax({
-      type: "POST",
-      dataType: "json",
-      url: "diego.php", //Relative or absolute path to response.php file
-      data: data,
-      success: function(data) {
-        $(".the-return").html(
-          "Command done: " + data["string"] + "<br />status: " + data["status"] + "<br />"
-        );
-      }
-    });
-    return false;
-  });
-  $(".getter").click(function(){
-    var data = {
-      "action": "get"
-    };
-    data = $(this).serialize() + "&" + $.param(data);
-    $.ajax({
-      type: "POST",
-      dataType: "json",
-      url: "diego.php", //Relative or absolute path to response.php file
-      data: data,
-      success: function(data) {
-        $(".the-return").html(
-          "Command done: " + data["string"] + "<br />status: " + data["status"] + "<br />"
-        );
-      }
-    });
-    return false;
-  });
-});
-</script>
+<script src="diego.js"></script>
 <style>
     .right_button {float: right; text-align: right;}
 </style>

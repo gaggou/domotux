@@ -1,6 +1,6 @@
 <head>
 <link rel="stylesheet" href="jquery.mobile-1.4.5.min.css">
-<meta name="viewport" content="width=device-width, initial-scale=2.0">
+<meta name="viewport" content="width=device-width">
 <script src="jquery-1.11.1.min.js"></script>
 <script src="jquery.mobile-1.4.5.min.js"></script>
 <script src="diego.js"></script>

@@ -48,6 +48,21 @@ SET character_set_client = utf8;
 SET character_set_client = @saved_cs_client;
 
 --
+-- Temporary table structure for view `V_status`
+--
+
+DROP TABLE IF EXISTS `V_status`;
+/*!50001 DROP VIEW IF EXISTS `V_status`*/;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+/*!50001 CREATE TABLE `V_status` (
+  `id` tinyint NOT NULL,
+  `identifier` tinyint NOT NULL,
+  `status` tinyint NOT NULL
+) ENGINE=MyISAM */;
+SET character_set_client = @saved_cs_client;
+
+--
 -- Table structure for table `action`
 --
 
@@ -64,7 +79,7 @@ CREATE TABLE `action` (
   KEY `action_ibfk_2` (`id_control`),
   CONSTRAINT `action_ibfk_2` FOREIGN KEY (`id_control`) REFERENCES `control` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `action_ibfk_1` FOREIGN KEY (`id_actions`) REFERENCES `actions_per_type` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=latin1 COMMENT='instance of an action, associated with a controller';
+) ENGINE=InnoDB AUTO_INCREMENT=62 DEFAULT CHARSET=latin1 COMMENT='instance of an action, associated with a controller';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -73,7 +88,7 @@ CREATE TABLE `action` (
 
 LOCK TABLES `action` WRITE;
 /*!40000 ALTER TABLE `action` DISABLE KEYS */;
-INSERT INTO `action` VALUES (22,1,2,'2'),(23,3,2,'2'),(25,1,3,'1'),(26,3,3,'1'),(41,1,5,'3'),(43,3,5,'3');
+INSERT INTO `action` VALUES (22,1,2,'2'),(23,3,2,'2'),(25,1,3,'1'),(26,3,3,'1'),(41,1,5,'3'),(43,3,5,'3'),(53,1,7,'5'),(54,3,7,'5'),(59,5,9,NULL),(60,6,9,NULL);
 /*!40000 ALTER TABLE `action` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -91,7 +106,7 @@ CREATE TABLE `actions_per_type` (
   PRIMARY KEY (`id`),
   KEY `id_type` (`id_type`),
   CONSTRAINT `actions_per_type_ibfk_1` FOREIGN KEY (`id_type`) REFERENCES `type` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=latin1 COMMENT='on, off, set_val, status, ...';
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1 COMMENT='on, off, set_val, status, ...';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -100,7 +115,7 @@ CREATE TABLE `actions_per_type` (
 
 LOCK TABLES `actions_per_type` WRITE;
 /*!40000 ALTER TABLE `actions_per_type` DISABLE KEYS */;
-INSERT INTO `actions_per_type` VALUES (1,1,'on'),(3,1,'off');
+INSERT INTO `actions_per_type` VALUES (1,1,'on'),(3,1,'off'),(5,4,'on'),(6,4,'off');
 /*!40000 ALTER TABLE `actions_per_type` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -118,7 +133,7 @@ CREATE TABLE `control` (
   PRIMARY KEY (`id`),
   KEY `type` (`type`),
   CONSTRAINT `control_ibfk_2` FOREIGN KEY (`type`) REFERENCES `type` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -127,7 +142,7 @@ CREATE TABLE `control` (
 
 LOCK TABLES `control` WRITE;
 /*!40000 ALTER TABLE `control` DISABLE KEYS */;
-INSERT INTO `control` VALUES (2,1,'Arrosage automatique'),(3,1,'Lumière dans la chambre des parents'),(5,1,'Lumiere dans la chambre des enfants');
+INSERT INTO `control` VALUES (2,1,'Arrosage automatique'),(3,1,'Lumière dans la chambre des parents'),(5,1,'Lumiere dans la chambre des enfants'),(7,1,'Lumière de la cabane'),(9,4,'Mode debug');
 /*!40000 ALTER TABLE `control` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -158,7 +173,7 @@ CREATE TABLE `status` (
   `status` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `status_ibfk_1` FOREIGN KEY (`id`) REFERENCES `control` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -167,7 +182,7 @@ CREATE TABLE `status` (
 
 LOCK TABLES `status` WRITE;
 /*!40000 ALTER TABLE `status` DISABLE KEYS */;
-INSERT INTO `status` VALUES (2,'OFF'),(3,'ON');
+INSERT INTO `status` VALUES (2,'OFF'),(3,'ON'),(5,'OFF'),(7,'OFF'),(9,'OFF');
 /*!40000 ALTER TABLE `status` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -183,7 +198,7 @@ CREATE TABLE `type` (
   `name` varchar(64) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`,`name`),
   KEY `name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=latin1 COMMENT='on_off, dimmer, status, ...';
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=latin1 COMMENT='on_off, dimmer, status, ...';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -192,7 +207,7 @@ CREATE TABLE `type` (
 
 LOCK TABLES `type` WRITE;
 /*!40000 ALTER TABLE `type` DISABLE KEYS */;
-INSERT INTO `type` VALUES (2,'dimmer'),(3,'status'),(1,'td_on_off');
+INSERT INTO `type` VALUES (4,'abstract_on_off'),(2,'dimmer'),(3,'status'),(1,'td_on_off');
 /*!40000 ALTER TABLE `type` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -233,6 +248,25 @@ UNLOCK TABLES;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
+-- Final view structure for view `V_status`
+--
+
+/*!50001 DROP TABLE IF EXISTS `V_status`*/;
+/*!50001 DROP VIEW IF EXISTS `V_status`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_unicode_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `V_status` AS select `control`.`id` AS `id`,`control`.`name` AS `identifier`,`status`.`status` AS `status` from ((`control` join `type` on((`type`.`id` = `control`.`type`))) left join `status` on((`status`.`id` = `control`.`id`))) */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -243,4 +277,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2016-08-06 13:41:24
+-- Dump completed on 2016-08-06 14:28:34

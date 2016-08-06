@@ -20,19 +20,16 @@
 <?php
 try
 {
-	// On se connecte à MySQL
-	$bdd = new PDO('mysql:host=localhost;dbname=diego', 'gab', '');
+  // On se connecte à MySQL
+  $bdd = new PDO('mysql:host=localhost;dbname=diego', 'www', '');
 }
 catch(Exception $e)
 {
 	// En cas d'erreur, on affiche un message et on arrête tout
-        die('Erreur : '.$e->getMessage());
+	die('Erreur : '.$e->getMessage());
 }
 
-// Si tout va bien, on peut continuer
-
-// On récupère tout le contenu de la table jeux_video
-$reponse = $bdd->query('select control.id as id, control.name as identifier, status.status from control inner join type on type.id=control.type left join status on status.id=control.id;');
+$reponse = $bdd->query('SELECT * FROM V_status;');
 
 if ($reponse){
 // On affiche chaque entrée une à une
@@ -41,7 +38,7 @@ while ($donnees = $reponse->fetch())
 ?>
 <div class="ui-grid-a row">
 <div class="ui-block-a">
-    <label for="<?= $donnees["id"] ?>"> <?= $donnees["identifier"] ?></label>
+    <label for="<?= $donnees["id"] ?>"> <?= htmlentities($donnees["identifier"], ENT_NOQUOTES, "ISO-8859-1") ?></label>
 </div>
 <div class="right_button ui-block-b">
     <input data-role="flipswitch" id="<?= $donnees["id"]?>" state="<?= $donnees["status"]?>" class="setter" type="checkbox" <?php if ($donnees["status"] == "ON") echo 'checked=""';?>/>

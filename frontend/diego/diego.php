@@ -1,25 +1,41 @@
 <?php
+try
+{
+	// On se connecte à MySQL
+	$bdd = new PDO('mysql:host=localhost;dbname=diego', 'gab', '');
+}
+catch(Exception $e)
+{
+	// En cas d'erreur, on affiche un message et on arrête tout
+        die('Erreur : '.$e->getMessage());
+}
 //Function to check if the request is an AJAX request
 function is_ajax() {
   return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
 }
 
-function diego_act(){
+function diego_act($bdd){
   $return = $_POST;
   $id = intval($_POST["id"]);
   $state = $_POST["state"];
-  if ($state == "ON"){
-    $return_val = exec("echo tdtool -n " . $id, $table, $status);
-  } else {
-    $return_val = exec("echo tdtool -f " . $id, $table, $status);
+  $return["string"] = "ID Not Found";
+  $stmt = $bdd->prepare("SELECT action.parameter, actions_per_type.name as action, type.name as type FROM action INNER JOIN actions_per_type ON id_actions=actions_per_type.id INNER JOIN type ON type.id=id_type WHERE id_control = ? AND actions_per_type.name = ?;");
+  if ($stmt->execute(array($id, $state)) && $row = $stmt->fetch()) {
+    $return["string"] = $row["type"] . " set to " . $row["action"] . " with parameter " . $row["parameter"];
   }
+  $reponse = $bdd->query('update status set status="' . $state . '" where id ='.$id . ';');
   $return["status"] = $status;
-  $return["string"] = $return_val;
   $return["id"] = $id;
   return $return;
 }
 
 function get_status(){
+$reponse = $bdd->query('select control.id as id, control.name as identifier, status.status from control inner join type on type.id=control.type left join status on status.id=control.id;');
+
+if ($reponse){
+// On affiche chaque entrée une à une
+while ($donnees = $reponse->fetch())
+{
   $return_val = exec("tdtool -l", $table, $status);
   foreach($table as $line){
     if(strpos($line, "\t")){
@@ -31,11 +47,13 @@ function get_status(){
   }
   return $return;
 }
+}
+}
 if (is_ajax()) {
   if (isset($_POST["action"]) && !empty($_POST["action"])) { //Checks if action value exists
     $action = $_POST["action"];
     switch($action) { //Switch case for value of action
-      case "act":  echo json_encode(diego_act()); break;
+      case "act":  echo json_encode(diego_act($bdd)); break;
       case "get":  echo json_encode(get_status()); break;
     }
     exit;
@@ -45,48 +63,69 @@ if (is_ajax()) {
 }
 ?>
 <head>
-<link rel="stylesheet" href="jquery.mobile-1.4.5.min.css">
-<script src="jquery-1.11.1.min.js"></script>
-<script src="jquery.mobile-1.4.5.min.js"></script>
-<script src="diego.js"></script>
-<style>
-    .right_button {float: right; text-align: right;}
-</style>
+<script src="jquery-1.11.0.min.js"></script>
+<!--Put the following in the <head>-->
+<script type="text/javascript">
+$("document").ready(function(){
+  $(".setter").click(function(){
+    if($(this).attr("state") == "ON"){
+      $(this).attr("state", "OFF");
+    } else {
+      $(this).attr("state", "ON");
+    }
+    var data = {
+      "action": "act",
+      "id": $(this).attr("id"),
+      "state": $(this).attr("state")
+    };
+    data = $(this).serialize() + "&" + $.param(data);
+    $.ajax({
+      type: "POST",
+      dataType: "json",
+      url: "diego.php", //Relative or absolute path to response.php file
+      data: data,
+      success: function(data) {
+        $(".the-return").html(
+          "Command done: " + data["string"] + "<br />status: " + data["status"] + "<br />"
+        );
+      }
+    });
+    return false;
+  });
+  $(".getter").click(function(){
+    var data = {
+      "action": "get"
+    };
+    data = $(this).serialize() + "&" + $.param(data);
+    $.ajax({
+      type: "POST",
+      dataType: "json",
+      url: "diego.php", //Relative or absolute path to response.php file
+      data: data,
+      success: function(data) {
+        $(".the-return").html(
+          "Command done: " + data["string"] + "<br />status: " + data["status"] + "<br />"
+        );
+      }
+    });
+    return false;
+  });
+});
+</script>
 </head>
 
 <body>
-<div data-role="page">
-    <div data-role="header">
-        <h1>Controle via Tellstick</h1>
-        <a href="#nav-panel" data-icon="bars" nodisc-icon="" data-iconpos="notext">Menu</a>
-        <a href="#" class="getter ui-btn ui-shadow ui-corner-all ui-btn-icon-notext ui-btn-inline ui-icon-refresh">actualiser</a>
-    </div><!-- /header -->
-    <div role="main" class="ui-content jqm-content jqm-fullwidth">
-<form>
 <?php
   foreach(get_status() as $binou){
-?>
-<div class="ui-grid-a row">
-<div class="ui-block-a">
-    <label for="<?= $binou["id"] ?>"> <?= $binou["identifier"] ?></label>
-</div>
-<div class="right_button ui-block-b">
-    <input data-role="flipswitch" id="<?= $binou["id"]?>" state="<?= $binou["status"]?>" class="setter" type="checkbox" <?php if ($binou["status"] == "ON") echo 'checked=""';?>/>
-</div>
-</div>
-<?php
+    echo "
+<button id=\"${binou["id"]}\" state=\"${binou["status"]}\" class=\"setter\">${binou["identifier"]}</button></br>";
   }
 ?>
-</form>
-    </div><!-- /content -->
-    <div data-role="panel" data-display="push" data-theme="b" id="nav-panel">
-<div data-role="collapsible" >
-<h4> Status </h4>
+
+<button class="getter">actualiser</button></br>
+
 <div class="the-return">
   status
-</div>
-    </div><!-- /panel -->
-
 </div>
 
 

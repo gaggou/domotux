@@ -16,6 +16,38 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Temporary table structure for view `V_action_consistency`
+--
+
+DROP TABLE IF EXISTS `V_action_consistency`;
+/*!50001 DROP VIEW IF EXISTS `V_action_consistency`*/;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+/*!50001 CREATE TABLE `V_action_consistency` (
+  `id_control` tinyint NOT NULL,
+  `id_actions` tinyint NOT NULL,
+  `already` tinyint NOT NULL
+) ENGINE=MyISAM */;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Temporary table structure for view `V_control`
+--
+
+DROP TABLE IF EXISTS `V_control`;
+/*!50001 DROP VIEW IF EXISTS `V_control`*/;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+/*!50001 CREATE TABLE `V_control` (
+  `id` tinyint NOT NULL,
+  `name` tinyint NOT NULL,
+  `type` tinyint NOT NULL,
+  `action` tinyint NOT NULL,
+  `parameter` tinyint NOT NULL
+) ENGINE=MyISAM */;
+SET character_set_client = @saved_cs_client;
+
+--
 -- Table structure for table `action`
 --
 
@@ -28,11 +60,11 @@ CREATE TABLE `action` (
   `id_control` int(11) DEFAULT NULL,
   `parameter` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `id_actions` (`id_actions`),
-  KEY `id_control` (`id_control`),
-  CONSTRAINT `action_ibfk_1` FOREIGN KEY (`id_actions`) REFERENCES `actions_per_type` (`id`),
-  CONSTRAINT `action_ibfk_2` FOREIGN KEY (`id_control`) REFERENCES `control` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=latin1 COMMENT='instance of an action, associated with a controller';
+  KEY `action_ibfk_1` (`id_actions`),
+  KEY `action_ibfk_2` (`id_control`),
+  CONSTRAINT `action_ibfk_2` FOREIGN KEY (`id_control`) REFERENCES `control` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `action_ibfk_1` FOREIGN KEY (`id_actions`) REFERENCES `actions_per_type` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=latin1 COMMENT='instance of an action, associated with a controller';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -41,7 +73,7 @@ CREATE TABLE `action` (
 
 LOCK TABLES `action` WRITE;
 /*!40000 ALTER TABLE `action` DISABLE KEYS */;
-INSERT INTO `action` VALUES (22,1,2,NULL),(23,3,2,NULL),(25,1,3,NULL),(26,3,3,NULL);
+INSERT INTO `action` VALUES (22,1,2,'2'),(23,3,2,'2'),(25,1,3,'1'),(26,3,3,'1'),(41,1,5,'3'),(43,3,5,'3');
 /*!40000 ALTER TABLE `action` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -86,7 +118,7 @@ CREATE TABLE `control` (
   PRIMARY KEY (`id`),
   KEY `type` (`type`),
   CONSTRAINT `control_ibfk_2` FOREIGN KEY (`type`) REFERENCES `type` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -95,9 +127,24 @@ CREATE TABLE `control` (
 
 LOCK TABLES `control` WRITE;
 /*!40000 ALTER TABLE `control` DISABLE KEYS */;
-INSERT INTO `control` VALUES (2,1,'Arrosage automatique'),(3,1,'Lumière dans la chambre des parents'),(4,1,'Lumière dans la chambre d\'Amandine');
+INSERT INTO `control` VALUES (2,1,'Arrosage automatique'),(3,1,'Lumière dans la chambre des parents'),(5,1,'Lumiere dans la chambre des enfants');
 /*!40000 ALTER TABLE `control` ENABLE KEYS */;
 UNLOCK TABLES;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = '' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `auto_add_actions` AFTER INSERT ON `control` FOR EACH ROW insert into action ( id_control, id_actions) select id_control, id_actions from V_action_consistency where id_control=NEW.id */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
 -- Table structure for table `status`
@@ -110,7 +157,7 @@ CREATE TABLE `status` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `status` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  CONSTRAINT `status_ibfk_1` FOREIGN KEY (`id`) REFERENCES `control` (`id`)
+  CONSTRAINT `status_ibfk_1` FOREIGN KEY (`id`) REFERENCES `control` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -120,7 +167,7 @@ CREATE TABLE `status` (
 
 LOCK TABLES `status` WRITE;
 /*!40000 ALTER TABLE `status` DISABLE KEYS */;
-INSERT INTO `status` VALUES (2,'OFF'),(3,'ON'),(4,'OFF');
+INSERT INTO `status` VALUES (2,'OFF'),(3,'ON');
 /*!40000 ALTER TABLE `status` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -136,7 +183,7 @@ CREATE TABLE `type` (
   `name` varchar(64) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`,`name`),
   KEY `name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=latin1 COMMENT='on_off, dimmer, status, ...';
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=latin1 COMMENT='on_off, dimmer, status, ...';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -148,6 +195,44 @@ LOCK TABLES `type` WRITE;
 INSERT INTO `type` VALUES (2,'dimmer'),(3,'status'),(1,'td_on_off');
 /*!40000 ALTER TABLE `type` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Final view structure for view `V_action_consistency`
+--
+
+/*!50001 DROP TABLE IF EXISTS `V_action_consistency`*/;
+/*!50001 DROP VIEW IF EXISTS `V_action_consistency`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_unicode_ci */;
+/*!50001 CREATE ALGORITHM=TEMPTABLE */
+/*!50013 DEFINER=`gab`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `V_action_consistency` AS select `c`.`id` AS `id_control`,`a`.`id` AS `id_actions`,(select `action`.`id` from `action` where ((`action`.`id_control` = `c`.`id`) and (`action`.`id_actions` = `a`.`id`))) AS `already` from (`control` `c` join `actions_per_type` `a`) where (`a`.`id_type` = `c`.`type`) */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
+-- Final view structure for view `V_control`
+--
+
+/*!50001 DROP TABLE IF EXISTS `V_control`*/;
+/*!50001 DROP VIEW IF EXISTS `V_control`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_unicode_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`gab`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `V_control` AS select `control`.`id` AS `id`,`control`.`name` AS `name`,`type`.`name` AS `type`,`actions_per_type`.`name` AS `action`,`action`.`parameter` AS `parameter` from (((`action` join `control` on((`action`.`id_control` = `control`.`id`))) join `actions_per_type` on((`action`.`id_actions` = `actions_per_type`.`id`))) left join `type` on((`type`.`id` = `actions_per_type`.`id_type`))) */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -158,4 +243,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2016-08-06  8:59:41
+-- Dump completed on 2016-08-06 13:41:24

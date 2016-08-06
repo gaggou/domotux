@@ -1,17 +1,17 @@
 <?php
 try
 {
-	// On se connecte à MySQL
-	$bdd = new PDO('mysql:host=localhost;dbname=diego', 'gab', '');
+ // On se connecte à MySQL
+ $bdd = new PDO('mysql:host=localhost;dbname=diego', 'www', '');
 }
 catch(Exception $e)
 {
-	// En cas d'erreur, on affiche un message et on arrête tout
-        die('Erreur : '.$e->getMessage());
+ // En cas d'erreur, on affiche un message et on arrête tout
+ die('Erreur : '.$e->getMessage());
 }
 //Function to check if the request is an AJAX request
 function is_ajax() {
-  return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
 }
 
 function diego_act($bdd){
@@ -19,7 +19,7 @@ function diego_act($bdd){
   $id = intval($_POST["id"]);
   $state = $_POST["state"];
   $return["string"] = "ID Not Found";
-  $stmt = $bdd->prepare("SELECT action.parameter, actions_per_type.name as action, type.name as type FROM action INNER JOIN actions_per_type ON id_actions=actions_per_type.id INNER JOIN type ON type.id=id_type WHERE id_control = ? AND actions_per_type.name = ?;");
+  $stmt = $bdd->prepare("SELECT * FROM V_control WHERE id = ? AND action = ?;");
   if ($stmt->execute(array($id, $state)) && $row = $stmt->fetch()) {
     $return["string"] = $row["type"] . " set to " . $row["action"] . " with parameter " . $row["parameter"];
   }
@@ -62,72 +62,3 @@ if (is_ajax()) {
   exit;
 }
 ?>
-<head>
-<script src="jquery-1.11.0.min.js"></script>
-<!--Put the following in the <head>-->
-<script type="text/javascript">
-$("document").ready(function(){
-  $(".setter").click(function(){
-    if($(this).attr("state") == "ON"){
-      $(this).attr("state", "OFF");
-    } else {
-      $(this).attr("state", "ON");
-    }
-    var data = {
-      "action": "act",
-      "id": $(this).attr("id"),
-      "state": $(this).attr("state")
-    };
-    data = $(this).serialize() + "&" + $.param(data);
-    $.ajax({
-      type: "POST",
-      dataType: "json",
-      url: "diego.php", //Relative or absolute path to response.php file
-      data: data,
-      success: function(data) {
-        $(".the-return").html(
-          "Command done: " + data["string"] + "<br />status: " + data["status"] + "<br />"
-        );
-      }
-    });
-    return false;
-  });
-  $(".getter").click(function(){
-    var data = {
-      "action": "get"
-    };
-    data = $(this).serialize() + "&" + $.param(data);
-    $.ajax({
-      type: "POST",
-      dataType: "json",
-      url: "diego.php", //Relative or absolute path to response.php file
-      data: data,
-      success: function(data) {
-        $(".the-return").html(
-          "Command done: " + data["string"] + "<br />status: " + data["status"] + "<br />"
-        );
-      }
-    });
-    return false;
-  });
-});
-</script>
-</head>
-
-<body>
-<?php
-  foreach(get_status() as $binou){
-    echo "
-<button id=\"${binou["id"]}\" state=\"${binou["status"]}\" class=\"setter\">${binou["identifier"]}</button></br>";
-  }
-?>
-
-<button class="getter">actualiser</button></br>
-
-<div class="the-return">
-  status
-</div>
-
-
-</body>
-</html>

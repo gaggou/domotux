@@ -55,5 +55,20 @@ Erreur: requete mal formee
 <?php
 
 }
-
 ?>
+</form>
+    </div><!-- /content -->
+    <div data-role="panel" data-display="push" data-theme="b" id="nav-panel">
+<div data-role="collapsible" >
+<h4> Status </h4>
+<div class="the-return">
+  status
+</div>
+    </div><!-- /panel -->
+
+</div>
+
+
+</body>
+</html>
+

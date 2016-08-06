@@ -4,15 +4,47 @@ function is_ajax() {
   return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
 }
 
+// action
 function diego_act($bdd){
+  // get parameters
   $return = $_POST;
   $id = intval($_POST["id"]);
   $state = $_POST["state"];
+  // initialize return value
   $return["string"] = "ID Not Found";
+  // Get information of what to do from DB
   $stmt = $bdd->prepare("SELECT * FROM V_control WHERE id = ? AND action = ?;");
   if ($stmt->execute(array($id, $state)) && $row = $stmt->fetch()) {
-    $return["string"] = $row["type"] . " set to " . $row["action"] . " with parameter " . $row["parameter"];
+
+    // Actually do it
+    switch($row["type"]){
+      case "td_on_off":
+        switch($state){
+          case "ON":
+            $return["string"] = exec("tdtool -n " . $row["parameter"], $table, $status);
+            $return["status"] = $status;
+            break;
+          case "OFF":
+            $return["string"] = exec("tdtool -f " . $row["parameter"], $table, $status);
+            $return["status"] = $status;
+            break;
+          default:
+            $return["string"] = "Error: " . $state . " not understood";
+        }
+
+        break;
+      case "abstract_on_off":
+        // Do nothing, as abstract
+        $return["string"] = $row["type"] . " set to " . $row["action"] . " with parameter " . $row["parameter"];
+        break;
+      default:
+        $return["string"] = $row["type"] . " set to " . $row["action"] . " with parameter " . $row["parameter"];
+        break;
+    }
+
   }
+
+  // Update status DB with new status
   $stmt = $bdd->prepare("UPDATE status SET status = ? WHERE id = ?;");
   if(!$stmt->execute(array($state,$id))){
     put_r($stmt->errorInfo());

@@ -1,32 +1,18 @@
 /*
+ * ESP8266 MQTT Client
+ * It deals with 4 Channels
+ * OUT_TOPIC_BUTTON: updated whenever button is changed with new button value
+ * OUT_TOPIC_LED: updated when led controlled by button changes value. Update
+ * mirrors the new value
+ * IN_TOPIC: Switches on COMMAND_LED when '1' is sent to this channel. Switches 
+ * it off on other values.
  *
- Basic ESP8266 MQTT example
-
- This sketch demonstrates the capabilities of the pubsub library in combination
- with the ESP8266 board/library.
-
- It connects to an MQTT server then:
-  - publishes "hello world" to the topic "outTopic" every two seconds
-  - subscribes to the topic "inTopic", printing out any messages
-    it receives. NB - it assumes the received payloads are strings not binary
-  - If the first character of the topic "inTopic" is an 1, switch ON the ESP Led,
-    else switch it off
-
- It will reconnect to the server if the connection is lost using a blocking
- reconnect function. See the 'mqtt_reconnect_nonblocking' example for how to
- achieve the same result without blocking the main loop.
-
- To install the ESP8266 board, (using Arduino 1.6.4+):
-  - Add the following 3rd party board manager under "File -> Preferences -> Additional Boards Manager URLs":
-       http://arduino.esp8266.com/stable/package_esp8266com_index.json
-  - Open the "Tools -> Board -> Board Manager" and click install for the ESP8266"
-  - Select your ESP8266 in "Tools -> Board"
-
+ * Button is probed. When it is pressed, it toggles BUTTON_LED value.
 */
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#define INCLUDE_SERIAL 1
+#define INCLUDE_SERIAL 0
 #define SEND_SENSOR_VALUE 0
 
 // This file will not be part of the released software
@@ -42,6 +28,9 @@ const char* mqtt_server = PERSO_DEFINE_SERVER_URL;
 const char* OUT_TOPIC_BUTTON = "/esp/button";
 const char* OUT_TOPIC_LED = "/esp/command";
 const char* IN_TOPIC = "/esp/led";
+const char* ALIVE_TOPIC = "/alive";
+const char* SENSOR_TOPIC = "/esp/sensor";
+const char* SELF_NAME = "esp";
 
 // Button debounce constants
 const long debounceDelay = 50;    // the debounce time; increase if the output flickers
@@ -137,7 +126,7 @@ void reconnect() {
       Serial.println("connected");
 #endif
       // Once connected, publish an announcement...
-      client.publish("alive", "esp");
+      client.publish(ALIVE_TOPIC, SELF_NAME);
       // ... and resubscribe
       client.subscribe(IN_TOPIC);
     } else {
@@ -238,9 +227,9 @@ void loop() {
     Serial.print("Publish message: ");
     Serial.println(msg);
 #endif // INCLUDE_SERIAL
-    client.publish("/esp/sensor", msg);
+    client.publish(SENSOR_TOPIC, msg);
 #endif // SEND_SENSOR_VALUE
-    client.publish("alive", "esp");
+    client.publish(ALIVE_TOPIC, SELF_NAME);
   }
   digitalWrite(BUTTON_LED, ledState);
 }

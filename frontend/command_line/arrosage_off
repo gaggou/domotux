@@ -1,0 +1,8 @@
+#!/usr/bin/python3
+
+from diego import diego_request
+
+result = diego_request(action='act', id=2, state='OFF')
+print (result['string'])
+exit(result['status'])
+

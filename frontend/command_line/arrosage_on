@@ -1,0 +1,13 @@
+#!/usr/bin/python3
+
+from diego import diego_request
+
+result = diego_request(action='get')
+if result['10']['status'] == 'ON':
+  print ('Programmation OK, activation')
+  result = diego_request(action='act', id=2, state='ON')
+  print (result['string'])
+  exit(result['status'])
+else:
+  print ('Programmation OFF, rien a faire')
+

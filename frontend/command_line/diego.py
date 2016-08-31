@@ -5,7 +5,6 @@ import json
 from io import BytesIO
 from urllib.parse import urlencode
 
-import pprint
 def diego_request(**post_data):
   """docstring for diego_request"""
   buffer = BytesIO()
@@ -30,8 +29,10 @@ def diego_request(**post_data):
 
   return json.loads(body.decode('iso-8859-1'))
 
-result = diego_request(action='get')
-if result['9']['status'] == 'ON':
-  print ('Le mode debug est actif')
+if __name__ == '__main__':
+  result = diego_request(action='get')
+  if result['9']['status'] == 'ON':
+    print ('Le mode debug est actif')
 
-pprint.pprint(diego_request(action='act', id=9, state='OFF'))
+  import pprint
+  pprint.pprint(diego_request(action='act', id=9, state='OFF'))

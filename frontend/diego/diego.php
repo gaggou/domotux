@@ -1,15 +1,12 @@
 <?php
 //Function to check if the request is an AJAX request
 function is_ajax() {
-  return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+  //return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+  return true;
 }
 
 // action
-function diego_act($bdd){
-  // get parameters
-  $return = $_POST;
-  $id = intval($_POST["id"]);
-  $state = $_POST["state"];
+function diego_act($bdd, $id, $state){
   // initialize return value
   $return["string"] = "ID Not Found";
   // Get information of what to do from DB
@@ -84,8 +81,15 @@ if (is_ajax()) {
   if (isset($_POST["action"]) && !empty($_POST["action"])) { //Checks if action value exists
     $action = $_POST["action"];
     switch($action) { //Switch case for value of action
-      case "act":  echo json_encode(diego_act($bdd)); break;
-      case "get":  echo json_encode(get_status($bdd)); break;
+      case "act":
+        // get parameters
+        $id = intval($_POST["id"]);
+        $state = $_POST["state"];
+        echo json_encode(diego_act($bdd, $id, $state));
+        break;
+      case "get":
+        echo json_encode(get_status($bdd));
+        break;
     }
     exit;
   }

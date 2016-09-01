@@ -32,6 +32,7 @@ def diego_request(**post_data):
 if __name__ == '__main__':
   from pprint import pprint
   from argparse import ArgumentParser
+  from sys import stderr
   parser = ArgumentParser(description='Send command to Diego.')
   parser.add_argument('-v', dest='verbose', action='store_true',
                                           help='Set verbose')
@@ -41,10 +42,20 @@ if __name__ == '__main__':
   args = parser.parse_args()
   diego_params = {}
   for parameter in args.params:
-    key, value = parameter.split("=")
-    diego_params[key] = value
+    try:
+      key, value = parameter.split("=")
+      diego_params[key] = value
+    except ValueError:
+      print("error: incorrect value format '%s'"%(parameter), file=stderr)
+      exit(1)
   if args.verbose:
-    pprint(diego_params)
+    pprint(diego_params, stream=stderr)
 
-  result = diego_request(**diego_params)
-  pprint(result)
+  try:
+    result = diego_request(**diego_params)
+    pprint(result)
+  except ValueError as e:
+    print("error: error dealing with server", file=stderr)
+    if (args.verbose):
+      print("  The error was: '%s'"%(e), file=stderr)
+    exit(2)

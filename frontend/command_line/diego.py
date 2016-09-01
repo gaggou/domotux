@@ -30,9 +30,21 @@ def diego_request(**post_data):
   return json.loads(body.decode('iso-8859-1'))
 
 if __name__ == '__main__':
-  result = diego_request(action='get')
-  if result['9']['status'] == 'ON':
-    print ('Le mode debug est actif')
+  from pprint import pprint
+  from argparse import ArgumentParser
+  parser = ArgumentParser(description='Send command to Diego.')
+  parser.add_argument('-v', dest='verbose', action='store_true',
+                                          help='Set verbose')
 
-  import pprint
-  pprint.pprint(diego_request(action='act', id=9, state='OFF'))
+  parser.add_argument('params', nargs='+', help='other params, in format a=b')
+
+  args = parser.parse_args()
+  diego_params = {}
+  for parameter in args.params:
+    key, value = parameter.split("=")
+    diego_params[key] = value
+  if args.verbose:
+    pprint(diego_params)
+
+  result = diego_request(**diego_params)
+  pprint(result)

@@ -28,6 +28,7 @@ const char* MY_PASSWORD = PERSO_DEFINE_PASS;
 const char* mqtt_server = PERSO_DEFINE_SERVER_URL;
 const char* OUT_TOPIC_BUTTON = "/esp/button";
 const char* OUT_TOPIC_LED = "/esp/command";
+const char* OUT_TOPIC_CODEUSE = "/esp/codeuse";
 const char* IN_TOPIC = "/esp/led";
 const char* ALIVE_TOPIC = "/alive";
 const char* SENSOR_TOPIC = "/esp/sensor";
@@ -41,8 +42,9 @@ const int LED_RED = 15;
 const int LED_BLUE = 13;
 const int LED_GREEN = 12;
 const int BUTTON_PIN = 4;
+const int LED_LITTLE_BLUE = 2;
 
-#define STATUS_LED LED_RED
+#define STATUS_LED LED_LITTLE_BLUE
 #define ACTION_LED LED_BLUE
 #define BUTTON_LED LED_GREEN
 
@@ -69,20 +71,23 @@ struct ButtonHandle {
   long lastDebounceTime;  // the last time the output pin was toggled
 };
 
+
 struct MessageHandle {
   const String*  message;
   unsigned int size;
   unsigned int index;
 };
 //const char* toto[] = {"Message 1", "Message 2", "Message 3", "Message 4", "Message 5"};
-  MessageHandle msg;
+MessageHandle msg;
 
 bool ledState = LOW;
 
-const String toto[] = {"Message 1", "Message 2", "Message 3", "Message 4", "Message 5"};
+const String toto[] = {"Amandine", "Noemie", "Valentine", "Message 4", "Message 5"};
 void setupLCD() {
   msg = {toto,5,0};
   lcd.init();                      // initialize the lcd 
+  lcd.clear();
+  lcd.backlight();
   displayMH(lcd, msg, 0);
 }
 
@@ -91,8 +96,38 @@ void displayMH(LiquidCrystal_I2C& lcd, MessageHandle& m, int line){
     Serial.print("LCD update: ");
     Serial.println(m.message[m.index]);
 #endif // INCLUDE_SERIAL
-  lcd.setCursor(line,0);
+  lcd.setCursor(0,line);
   lcd.print(m.message[m.index]);
+}
+
+int updateValue(bool a, bool b, bool prevA, bool prevB, int value){
+  // Front montant sur a
+  if(a && !prevA){
+    if(!b){
+      value++;
+    } else {
+      value--;
+    }
+  } else if (!a&&prevA) {
+    if(b){
+      value++;
+    } else {
+      value--;
+    }
+  }else if(b && !prevB){
+    if(a){
+      value++;
+    } else {
+      value--;
+    }
+  } else if (!b&&prevB) {
+    if(!a){
+      value++;
+    } else {
+      value--;
+    }
+  }
+  return value;
 }
 
 void setup_wifi() {
@@ -143,7 +178,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   String inString = (char*)payload;
   msg.index = inString.toInt() % msg.size;
-  displayMH(lcd, msg, 1);
+  lcd.clear();
+  displayMH(lcd, msg, 0);
   // Switch on the LED if an 1 was received as first character
   if ((char)payload[0] == '1') {
     digitalWrite(ACTION_LED, HIGH);
@@ -157,6 +193,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
+    digitalWrite(STATUS_LED, HIGH);
 #if INCLUDE_SERIAL
     Serial.print("Attempting MQTT connection...");
 #endif
@@ -179,13 +216,12 @@ void reconnect() {
       delay(5000);
     }
   }
+  digitalWrite(STATUS_LED, HIGH);
+
 }
 
 
-bool handleButton(ButtonHandle &button){
-  // read the state of the switch into a local variable:
-  int reading = digitalRead(button.buttonPin);
-
+bool handleButton(ButtonHandle &button, int reading){
   // check to see if you just pressed the button
   // (i.e. the input went from LOW to HIGH),  and you've waited
   // long enough since the last press to ignore any noise:
@@ -222,16 +258,21 @@ void commandAction(bool state){
 }
 
 ButtonHandle button;
+const unsigned long I2C_CLOCK = 400000;
 
 void setupI2C(){
   Wire.begin();
+  Wire.setClock(I2C_CLOCK);
 }
 
+const byte interruptPin = 16;
 void setup() {
 
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_BLUE, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_LITTLE_BLUE, OUTPUT);
+  pinMode(interruptPin, INPUT_PULLUP);
 
   pinMode(button.buttonPin, INPUT);
   digitalWrite(STATUS_LED, HIGH);
@@ -251,6 +292,69 @@ void setup() {
   setupLCD();
 }
 
+const byte debugPin1 = 3;
+volatile byte state = LOW;
+int codeuse = 0;
+//debounce
+byte reading = 0;
+byte lastButtonState = 0;
+bool pinChanged = false;
+bool stable = false;
+byte stableCount = 0;
+const byte STABILITY_CRITERIA = 3;
+//const int analogOutPin = 5; // Analog output pin that the LED is attached to
+int outputValue = 0;        // value output to the PWM (analog out)
+
+byte buttonState = 0;
+byte previousState = 0;
+char buf[10];
+
+void loop_pwm(){
+    // put your main code here, to run repeatedly
+  if(!digitalRead(interruptPin)) {
+    stable = false;
+    stableCount = 0;
+  }
+//  digitalWrite(debugPin1, stable);
+  if(!stable){
+    Wire.requestFrom(0x38,1);
+    if(Wire.available()){
+      reading = ~Wire.read();
+    }
+    if(reading == lastButtonState){
+      stableCount++;
+    }
+    if (stableCount >= STABILITY_CRITERIA){
+      stable = true;
+      buttonState = reading;
+    }
+    lastButtonState = reading;
+    if(buttonState != previousState){
+      int new_codeuse = updateValue(buttonState&0x8, buttonState&0x4, previousState&0x8, previousState&0x4, codeuse);
+      Serial.print("New Value: ");
+      Serial.print(codeuse);
+      Serial.print(" - ");
+      Serial.print(buttonState, HEX);
+      Serial.print(" - ");
+      Serial.print(previousState, HEX);
+      if(new_codeuse > codeuse){
+        Serial.println(" +");
+      }else{
+        Serial.println(" -");
+      }
+      previousState = buttonState;
+      codeuse = new_codeuse;
+      //outputValue = map(codeuse, 0, 1023, 0, 255);
+      //analogWrite(analogOutPin, constrain(codeuse, 0, 255));
+      sprintf(buf,"%d", codeuse);
+      client.publish(OUT_TOPIC_CODEUSE, buf);
+
+    }
+    //Serial.println("Something happened");
+  }
+
+}
+
 void loop() {
 
   if (!client.connected()) {
@@ -262,7 +366,7 @@ void loop() {
   }
   client.loop();
 
-  handleButton(button);
+  handleButton(button,digitalRead(button.buttonPin));
   long now = millis();
   if (now - lastMsgTS > 2000) {
     lastMsgTS = now;
@@ -278,4 +382,5 @@ void loop() {
 
   }
   digitalWrite(BUTTON_LED, ledState);
+  loop_pwm();
 }

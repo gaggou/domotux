@@ -57,6 +57,10 @@ long lastMsgTS = 0;
 char msg[10];
 #endif // SEND_SENSOR_VALUE
 
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+
+
 // Button debounce Variables
 struct ButtonHandle {
   int buttonPin;
@@ -65,7 +69,31 @@ struct ButtonHandle {
   long lastDebounceTime;  // the last time the output pin was toggled
 };
 
+struct MessageHandle {
+  const String*  message;
+  unsigned int size;
+  unsigned int index;
+};
+//const char* toto[] = {"Message 1", "Message 2", "Message 3", "Message 4", "Message 5"};
+  MessageHandle msg;
+
 bool ledState = LOW;
+
+const String toto[] = {"Message 1", "Message 2", "Message 3", "Message 4", "Message 5"};
+void setupLCD() {
+  msg = {toto,5,0};
+  lcd.init();                      // initialize the lcd 
+  displayMH(lcd, msg, 0);
+}
+
+void displayMH(LiquidCrystal_I2C& lcd, MessageHandle& m, int line){
+#if INCLUDE_SERIAL
+    Serial.print("LCD update: ");
+    Serial.println(m.message[m.index]);
+#endif // INCLUDE_SERIAL
+  lcd.setCursor(line,0);
+  lcd.print(m.message[m.index]);
+}
 
 void setup_wifi() {
 
@@ -113,6 +141,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println();
 #endif
 
+  String inString = (char*)payload;
+  msg.index = inString.toInt() % msg.size;
+  displayMH(lcd, msg, 1);
   // Switch on the LED if an 1 was received as first character
   if ((char)payload[0] == '1') {
     digitalWrite(ACTION_LED, HIGH);
@@ -217,6 +248,7 @@ void setup() {
   button.lastDebounceTime = 0;  // the last time the output pin was toggled
   digitalWrite(STATUS_LED, LOW);
   setupI2C();
+  setupLCD();
 }
 
 void loop() {

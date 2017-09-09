@@ -12,7 +12,8 @@
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#define INCLUDE_SERIAL 0
+#include <Wire.h>
+#define INCLUDE_SERIAL 1
 #define SEND_SENSOR_VALUE 0
 
 // This file will not be part of the released software
@@ -95,6 +96,12 @@ void setup_wifi() {
 #endif
 }
 
+void setLED(bool value){
+    Wire.beginTransmission(0x38);
+    Wire.write(value?0x0:0xFF);
+    Wire.endTransmission();
+}
+
 void callback(char* topic, byte* payload, unsigned int length) {
 #if INCLUDE_SERIAL
   Serial.print("Message arrived [");
@@ -109,8 +116,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
   // Switch on the LED if an 1 was received as first character
   if ((char)payload[0] == '1') {
     digitalWrite(ACTION_LED, HIGH);
+    setLED(true);
   } else {
     digitalWrite(ACTION_LED, LOW);
+    setLED(false);
   }
 }
 
@@ -183,6 +192,10 @@ void commandAction(bool state){
 
 ButtonHandle button;
 
+void setupI2C(){
+  Wire.begin();
+}
+
 void setup() {
 
   pinMode(LED_RED, OUTPUT);
@@ -203,7 +216,7 @@ void setup() {
   button.lastButtonState = LOW;   // the previous reading from the input pin
   button.lastDebounceTime = 0;  // the last time the output pin was toggled
   digitalWrite(STATUS_LED, LOW);
-
+  setupI2C();
 }
 
 void loop() {
@@ -230,6 +243,7 @@ void loop() {
     client.publish(SENSOR_TOPIC, msg);
 #endif // SEND_SENSOR_VALUE
     client.publish(ALIVE_TOPIC, SELF_NAME);
+
   }
   digitalWrite(BUTTON_LED, ledState);
 }

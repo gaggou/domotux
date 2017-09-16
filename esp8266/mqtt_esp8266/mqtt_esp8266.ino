@@ -78,13 +78,21 @@ struct MessageHandle {
 template <typename T> class ButtonHandle {
   public:
     int parameter;
-    T buttonState;             // the current reading from the input pin
-    T lastButtonState;   // the previous reading from the input pin
+    T state;             // the current reading from the input pin
+    T lastState;   // the previous reading from the input pin
     long lastDebounceTime;  // the last time the output pin was toggled
     T (*getter)(int parameter);  // the last time the output pin was toggled
+    ButtonHandle(int, T (*)(int));
     void handle(void (&commandAction)(T));
 // public: void Button::handle(){
 };
+template <typename T> ButtonHandle<T>::ButtonHandle(int _parameter, T (*_getter)(int)){
+  parameter = _parameter;
+  getter = _getter;
+  state = 0;
+  lastState = 0;
+  lastDebounceTime = 0;
+}
 
 template <typename T> void ButtonHandle<T>::handle(void (&commandAction)(T)){
   // read the state of the switch into a local variable:
@@ -95,7 +103,7 @@ template <typename T> void ButtonHandle<T>::handle(void (&commandAction)(T)){
   // long enough since the last press to ignore any noise:
 
   // If the switch changed, due to noise or pressing:
-  if (reading != lastButtonState) {
+  if (reading != lastState) {
     // reset the debouncing timer
     lastDebounceTime = millis();
   }
@@ -105,19 +113,26 @@ template <typename T> void ButtonHandle<T>::handle(void (&commandAction)(T)){
     // than the debounce delay, so take it as the actual current state:
 
     // if the button state has changed:
-    if (reading != buttonState) {
-      buttonState = reading;
-      commandAction(buttonState);
+    if (reading != state) {
+      state = reading;
+      commandAction(state);
     }
   }
 
   // save the reading.  Next time through the loop,
-  // it'll be the lastButtonState:
-  lastButtonState = reading;
+  // it'll be the lastState:
+  lastState = reading;
 }
 
 bool pinGetter(int pin){
   return digitalRead(pin);
+}
+
+byte pcf8574Get(int address) {
+  Wire.requestFrom(address, 1);
+  if(Wire.available()){
+    return Wire.read();
+  }
 }
 
 //const char* toto[] = {"Message 1", "Message 2", "Message 3", "Message 4", "Message 5"};
@@ -209,6 +224,9 @@ void setLED(bool value){
     Wire.endTransmission();
 }
 
+/**
+ * Callback for MQTT messages
+ **/
 void callback(char* topic, byte* payload, unsigned int length) {
 #if INCLUDE_SERIAL
   Serial.print("Message arrived [");
@@ -236,10 +254,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
     lcd.setCursor(0,0);
     lcd.print(buffer);
-    // String inString = (char*)payload;
-    // msg.index = inString.toInt() % msg.size;
-    // lcd.clear();
-    // displayMH(lcd, msg, 0);
   } else if(strcmp(topic, IN_TOPIC_LINE1) == 0){
     for (int i=0; i<16 && i<length; i++){
       buffer[i] = payload[i];
@@ -249,6 +263,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 }
 
+/**
+ * Reconnects to MQTT server
+ **/
 void reconnect() {
   // Loop until we're reconnected
   digitalWrite(STATUS_LED, LOW);
@@ -287,8 +304,8 @@ void toggleGreen(bool state){
   client.publish(OUT_TOPIC_LED, ledState?"ON":"OFF");
 }
 
-ButtonHandle<bool> button;
-ButtonHandle<byte> i2cButton;
+ButtonHandle<bool> button(BUTTON_PIN, &pinGetter);
+ButtonHandle<byte> i2cProbe(0x38, &pcf8574Get);
 
 void setupI2C(){
   Wire.begin();
@@ -312,11 +329,18 @@ void setup() {
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
-  button.parameter = BUTTON_PIN;
-  button.buttonState = LOW;             // the current reading from the input pin
-  button.lastButtonState = LOW;   // the previous reading from the input pin
-  button.lastDebounceTime = 0;  // the last time the output pin was toggled
-  button.getter = &pinGetter;
+//  button.parameter = BUTTON_PIN;
+//  button.state = LOW;             // the current reading from the input pin
+//  button.lastState = LOW;   // the previous reading from the input pin
+//  button.lastDebounceTime = 0;  // the last time the output pin was toggled
+//  button.getter = &pinGetter;
+//
+//  i2cProbe.parameter = 0x38;
+//  i2cProbe.state = 0;
+//  i2cProbe.lastState = 0;
+//  i2cProbe.lastDebounceTime = 0;
+//  i2cProbe.getter = &pcf8574Get;
+
   digitalWrite(STATUS_LED, LOW);
   setupI2C();
   setupLCD();

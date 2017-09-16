@@ -13,7 +13,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <Wire.h>
-#define INCLUDE_SERIAL 1
+#define INCLUDE_SERIAL 0
 #define SEND_SENSOR_VALUE 0
 
 // This file will not be part of the released software
@@ -30,6 +30,8 @@ const char* OUT_TOPIC_BUTTON = "/esp/button";
 const char* OUT_TOPIC_LED = "/esp/command";
 const char* OUT_TOPIC_CODEUSE = "/esp/codeuse";
 const char* IN_TOPIC = "/esp/led";
+const char* IN_TOPIC_LINE0 = "/esp/message0";
+const char* IN_TOPIC_LINE1 = "/esp/message1";
 const char* ALIVE_TOPIC = "/alive";
 const char* SENSOR_TOPIC = "/esp/sensor";
 const char* SELF_NAME = "esp";
@@ -38,15 +40,19 @@ const char* SELF_NAME = "esp";
 const long debounceDelay = 50;    // the debounce time; increase if the output flickers
 
 // IO constants, related to ESP8266 Board
+const int I2C_INT = 16;
 const int LED_RED = 15;
 const int LED_BLUE = 13;
 const int LED_GREEN = 12;
 const int BUTTON_PIN = 4;
 const int LED_LITTLE_BLUE = 2;
+const int DEBUG_PIN1 = 3;
 
 #define STATUS_LED LED_LITTLE_BLUE
 #define ACTION_LED LED_BLUE
 #define BUTTON_LED LED_GREEN
+
+const unsigned long I2C_CLOCK = 100000;
 
 // Network instances
 WiFiClient espClient;
@@ -62,34 +68,64 @@ char msg[10];
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 
-
-// Button debounce Variables
-struct ButtonHandle {
-  int buttonPin;
-  int buttonState;             // the current reading from the input pin
-  int lastButtonState;   // the previous reading from the input pin
-  long lastDebounceTime;  // the last time the output pin was toggled
-};
-
-
 struct MessageHandle {
   const String*  message;
   unsigned int size;
   unsigned int index;
 };
+
+// Button debounce Variables
+template <typename T> class ButtonHandle {
+  public:
+    int parameter;
+    T buttonState;             // the current reading from the input pin
+    T lastButtonState;   // the previous reading from the input pin
+    long lastDebounceTime;  // the last time the output pin was toggled
+    T (*getter)(int parameter);  // the last time the output pin was toggled
+    void handle(void (&commandAction)(T));
+// public: void Button::handle(){
+};
+
+template <typename T> void ButtonHandle<T>::handle(void (&commandAction)(T)){
+  // read the state of the switch into a local variable:
+  T reading = getter(parameter);
+
+  // check to see if you just pressed the button
+  // (i.e. the input went from LOW to HIGH),  and you've waited
+  // long enough since the last press to ignore any noise:
+
+  // If the switch changed, due to noise or pressing:
+  if (reading != lastButtonState) {
+    // reset the debouncing timer
+    lastDebounceTime = millis();
+  }
+
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    // whatever the reading is at, it's been there for longer
+    // than the debounce delay, so take it as the actual current state:
+
+    // if the button state has changed:
+    if (reading != buttonState) {
+      buttonState = reading;
+      commandAction(buttonState);
+    }
+  }
+
+  // save the reading.  Next time through the loop,
+  // it'll be the lastButtonState:
+  lastButtonState = reading;
+}
+
+bool pinGetter(int pin){
+  return digitalRead(pin);
+}
+
 //const char* toto[] = {"Message 1", "Message 2", "Message 3", "Message 4", "Message 5"};
 MessageHandle msg;
 
 bool ledState = LOW;
 
 const String toto[] = {"Amandine", "Noemie", "Valentine", "Message 4", "Message 5"};
-void setupLCD() {
-  msg = {toto,5,0};
-  lcd.init();                      // initialize the lcd 
-  lcd.clear();
-  lcd.backlight();
-  displayMH(lcd, msg, 0);
-}
 
 void displayMH(LiquidCrystal_I2C& lcd, MessageHandle& m, int line){
 #if INCLUDE_SERIAL
@@ -98,6 +134,14 @@ void displayMH(LiquidCrystal_I2C& lcd, MessageHandle& m, int line){
 #endif // INCLUDE_SERIAL
   lcd.setCursor(0,line);
   lcd.print(m.message[m.index]);
+}
+
+void setupLCD() {
+  msg = {toto,5,0};
+  lcd.init();                      // initialize the lcd 
+  lcd.clear();
+  lcd.backlight();
+  displayMH(lcd, msg, 0);
 }
 
 int updateValue(bool a, bool b, bool prevA, bool prevB, int value){
@@ -175,80 +219,66 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
   Serial.println();
 #endif
-
-  String inString = (char*)payload;
-  msg.index = inString.toInt() % msg.size;
-  lcd.clear();
-  displayMH(lcd, msg, 0);
-  // Switch on the LED if an 1 was received as first character
-  if ((char)payload[0] == '1') {
-    digitalWrite(ACTION_LED, HIGH);
-    setLED(true);
-  } else {
-    digitalWrite(ACTION_LED, LOW);
-    setLED(false);
+  char buffer[] = "                ";
+  
+  if(strcmp(topic, IN_TOPIC) == 0){
+    // Switch on the LED if an 1 was received as first character
+    if ((char)payload[0] == '1') {
+      digitalWrite(ACTION_LED, HIGH);
+      setLED(true);
+    } else {
+      digitalWrite(ACTION_LED, LOW);
+      setLED(false);
+    }
+  } else if(strcmp(topic, IN_TOPIC_LINE0) == 0){
+    for (int i=0; i<16 && i<length; i++){
+      buffer[i] = payload[i];
+    }
+    lcd.setCursor(0,0);
+    lcd.print(buffer);
+    // String inString = (char*)payload;
+    // msg.index = inString.toInt() % msg.size;
+    // lcd.clear();
+    // displayMH(lcd, msg, 0);
+  } else if(strcmp(topic, IN_TOPIC_LINE1) == 0){
+    for (int i=0; i<16 && i<length; i++){
+      buffer[i] = payload[i];
+    }
+    lcd.setCursor(0,1);
+    lcd.print(buffer);
   }
 }
 
 void reconnect() {
   // Loop until we're reconnected
-  while (!client.connected()) {
-    digitalWrite(STATUS_LED, HIGH);
+  digitalWrite(STATUS_LED, LOW);
 #if INCLUDE_SERIAL
-    Serial.print("Attempting MQTT connection...");
+  Serial.println("Attempting MQTT connection...");
 #endif
-    // Attempt to connect
-    if (client.connect("ESP8266Client")) {
+  // Attempt to connect
+  if (client.connect("ESP8266Client")) {
 #if INCLUDE_SERIAL
-      Serial.println("connected");
+    Serial.println("Connected");
 #endif
-      // Once connected, publish an announcement...
-      client.publish(ALIVE_TOPIC, SELF_NAME);
-      // ... and resubscribe
-      client.subscribe(IN_TOPIC);
-    } else {
+    // Once connected, publish an announcement...
+    client.publish(ALIVE_TOPIC, SELF_NAME);
+    // ... and resubscribe
+    client.subscribe(IN_TOPIC);
+    client.subscribe(IN_TOPIC_LINE0);
+    client.subscribe(IN_TOPIC_LINE1);
+  } else {
 #if INCLUDE_SERIAL
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
+    Serial.print("failed, rc=");
+    Serial.print(client.state());
+    Serial.println(" try again in 5 seconds");
 #endif
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
   }
-  digitalWrite(STATUS_LED, HIGH);
-
+  if (client.connected()) {
+    digitalWrite(STATUS_LED, LOW);
+  }
 }
 
-
-bool handleButton(ButtonHandle &button, int reading){
-  // check to see if you just pressed the button
-  // (i.e. the input went from LOW to HIGH),  and you've waited
-  // long enough since the last press to ignore any noise:
-
-  // If the switch changed, due to noise or pressing:
-  if (reading != button.lastButtonState) {
-    // reset the debouncing timer
-    button.lastDebounceTime = millis();
-  }
-
-  if ((millis() - button.lastDebounceTime) > debounceDelay) {
-    // whatever the reading is at, it's been there for longer
-    // than the debounce delay, so take it as the actual current state:
-
-    // if the button state has changed:
-    if (reading != button.buttonState) {
-      button.buttonState = reading;
-      commandAction(button.buttonState);
-    }
-  }
-
-  // save the reading.  Next time through the loop,
-  // it'll be the lastButtonState:
-  button.lastButtonState = reading;
-}
-
-void commandAction(bool state){
+void toggleGreen(bool state){
   // only toggle the LED if the new button state is HIGH
   if (state) {
        ledState = !ledState;
@@ -257,24 +287,23 @@ void commandAction(bool state){
   client.publish(OUT_TOPIC_LED, ledState?"ON":"OFF");
 }
 
-ButtonHandle button;
-const unsigned long I2C_CLOCK = 400000;
+ButtonHandle<bool> button;
+ButtonHandle<byte> i2cButton;
 
 void setupI2C(){
   Wire.begin();
   Wire.setClock(I2C_CLOCK);
 }
 
-const byte interruptPin = 16;
 void setup() {
 
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_BLUE, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
   pinMode(LED_LITTLE_BLUE, OUTPUT);
-  pinMode(interruptPin, INPUT_PULLUP);
+  pinMode(I2C_INT, INPUT_PULLUP);
 
-  pinMode(button.buttonPin, INPUT);
+  pinMode(button.parameter, INPUT);
   digitalWrite(STATUS_LED, HIGH);
 
 #if INCLUDE_SERIAL
@@ -283,16 +312,16 @@ void setup() {
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
-  button.buttonPin = BUTTON_PIN;
+  button.parameter = BUTTON_PIN;
   button.buttonState = LOW;             // the current reading from the input pin
   button.lastButtonState = LOW;   // the previous reading from the input pin
   button.lastDebounceTime = 0;  // the last time the output pin was toggled
+  button.getter = &pinGetter;
   digitalWrite(STATUS_LED, LOW);
   setupI2C();
   setupLCD();
 }
 
-const byte debugPin1 = 3;
 volatile byte state = LOW;
 int codeuse = 0;
 //debounce
@@ -309,13 +338,13 @@ byte buttonState = 0;
 byte previousState = 0;
 char buf[10];
 
-void loop_pwm(){
+void loop_i2c_probe(){
     // put your main code here, to run repeatedly
-  if(!digitalRead(interruptPin)) {
+  if(!digitalRead(I2C_INT)) {
     stable = false;
     stableCount = 0;
   }
-//  digitalWrite(debugPin1, stable);
+//  digitalWrite(DEBUG_PIN1, stable);
   if(!stable){
     Wire.requestFrom(0x38,1);
     if(Wire.available()){
@@ -331,6 +360,7 @@ void loop_pwm(){
     lastButtonState = reading;
     if(buttonState != previousState){
       int new_codeuse = updateValue(buttonState&0x8, buttonState&0x4, previousState&0x8, previousState&0x4, codeuse);
+#if INCLUDE_SERIAL
       Serial.print("New Value: ");
       Serial.print(codeuse);
       Serial.print(" - ");
@@ -342,15 +372,13 @@ void loop_pwm(){
       }else{
         Serial.println(" -");
       }
+#endif
       previousState = buttonState;
       codeuse = new_codeuse;
-      //outputValue = map(codeuse, 0, 1023, 0, 255);
-      //analogWrite(analogOutPin, constrain(codeuse, 0, 255));
       sprintf(buf,"%d", codeuse);
       client.publish(OUT_TOPIC_CODEUSE, buf);
 
     }
-    //Serial.println("Something happened");
   }
 
 }
@@ -358,15 +386,13 @@ void loop_pwm(){
 void loop() {
 
   if (!client.connected()) {
-    digitalWrite(STATUS_LED, HIGH);
-    // Warning : This is a blocking call
-    // TODO: remove the blocking call
     reconnect();
+  } else {
     digitalWrite(STATUS_LED, LOW);
   }
   client.loop();
 
-  handleButton(button,digitalRead(button.buttonPin));
+  button.handle(toggleGreen);
   long now = millis();
   if (now - lastMsgTS > 2000) {
     lastMsgTS = now;
@@ -382,5 +408,5 @@ void loop() {
 
   }
   digitalWrite(BUTTON_LED, ledState);
-  loop_pwm();
+  loop_i2c_probe();
 }

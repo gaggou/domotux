@@ -1,2 +1,4 @@
 .*.swp
 perso_*
+__pycache__
+#db.xml

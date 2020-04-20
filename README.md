@@ -7,3 +7,5 @@ It is separated in several subsystems including:
 My headless server that contains a webserver, an ssh server, and is connected to a tellstick.
 First version was made followint tuto from:
 https://jonsuh.com/blog/jquery-ajax-call-to-php-script-with-json-return/
+
+

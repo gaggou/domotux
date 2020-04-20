@@ -51,11 +51,23 @@ function diego_act($bdd, $id, $state){
   return $return;
 }
 
+function get_status_bin($bdd, $id){
+  $stmt = $bdd->prepare("SELECT status FROM V_status WHERE id = ?;");
+  if ($stmt->execute(array($id)) && $donnees = $stmt->fetch()) {
+      if($donnees["status"] == "ON"){
+	      return 1;
+      } else {
+	      return 0;
+      }
+  }
+  return -1;
+}
+
 function get_status($bdd){
   $reponse = $bdd->query('SELECT * FROM V_status;');
 
   if ($reponse){
-    // On affiche chaque entrée un a une
+    // On affiche chaque entrée une a une
     while ($donnees = $reponse->fetch())
     {
       $id = $donnees["id"];
@@ -89,6 +101,25 @@ if (is_ajax()) {
         break;
       case "get":
         echo json_encode(get_status($bdd));
+        break;
+    }
+    exit;
+  }
+  if (isset($_GET["action"]) && !empty($_GET["action"])) { //Checks if action value exists
+    $action = $_GET["action"];
+    switch($action) { //Switch case for value of action
+      case "act":
+        // get parameters
+        $id = intval($_GET["id"]);
+        $state = $_GET["state"];
+        echo json_encode(diego_act($bdd, $id, $state));
+        break;
+      case "get":
+        echo json_encode(get_status($bdd));
+        break;
+      case "get_bin":
+        $id = intval($_GET["id"]);
+        echo get_status_bin($bdd, $id);
         break;
     }
     exit;

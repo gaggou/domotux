@@ -1,17 +1,14 @@
 #! /usr/bin/python -u
 import requests
 import paho.mqtt.subscribe as subscribe
+import json
 
 class MessageHandler:
-  def __init__(self, verbose = False):
+  def __init__(self, action_file, verbose = False):
     self.index = 0
     self.verbose = verbose
-    self.actions = {'439775a': 
-                      ('http://192.168.1.48/set?c=580001&m=0',
-		       'http://192.168.1.48/set?c=003d09&m=4'),
-                    '441775a':
-                      ('http://192.168.1.48/set?m=33',
-                       'http://192.168.1.48/set?m=39')}
+    with open(action_file, 'r') as f:
+        self.actions = json.load(f)
 
   def __call__(self, client, userdata, message):
     try:
@@ -33,5 +30,5 @@ class MessageHandler:
       print('Request {}'.format(url))
     requests.get(url)
 
-subscribe.callback(MessageHandler(), '/esp/sensor')
+subscribe.callback(MessageHandler('actions.json'), '/esp/sensor')
 

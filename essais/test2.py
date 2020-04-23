@@ -7,27 +7,24 @@ import paho.mqtt.subscribe as subscribe
 
 class MessageHandler:
   def __init__(self, verbose = False):
-    self.odd = True
+    self.index = 0
     self.verbose = verbose
+    self.actions = {'439775a': ('http://192.168.1.48/set?c=580001&m=0', 'http://192.168.1.48/set?c=003d09&m=4'),
+      '441775a': ('http://192.168.1.48/set?m=33', 'http://192.168.1.48/set?m=39')}
   def __call__(self, client, userdata, message):
-    self.odd = not self.odd
-    line = message.payload
-    if self.verbose:
-      print('received "{}"'.format((line)))
-    if line == '439775a':
-      if self.odd:
-        self.request('http://192.168.1.48/set?c=580001&m=0')
-      else:
-        self.request('http://192.168.1.48/set?c=003d09&m=4')
-    elif line == '441775a':
-      if self.odd:
-        self.request('http://192.168.1.48/set?m=33')
-      else:
-        self.request('http://192.168.1.48/set?m=39')
-    elif line == 'toggleVerbose':
-      self.verbose = not self.verbose
+    try:
+      self.index = (self.index + 1) % 2
+      line = message.payload
       if self.verbose:
-        print('Verbose on')
+        print('received "{}"'.format((line)))
+      if line == 'toggleVerbose':
+        self.verbose = not self.verbose
+        if self.verbose:
+          print('Verbose on')
+      else:
+        self.request(self.actions[line][self.index])
+    except Exception as e:
+      print e
   def request(self, url):
     if self.verbose:
       print('Request {}'.format(url))
